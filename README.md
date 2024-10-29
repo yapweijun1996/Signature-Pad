@@ -33,4 +33,4 @@ saveSignature(): Saves the current canvas content as a PNG image.<br>
 This project has no external dependencies and uses standard web technologies.<br>
 
 ## Demo
-[You can view a live demo here (link to your hosted demo).](https://yapweijun1996.github.io/Signature-Pad/)
+https://yapweijun1996.github.io/Signature-Pad/
