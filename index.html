@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signature Pad</title>
+    <style>
+        .container {
+            margin: 0 auto;
+            text-align: center;
+        }
+        .signature-pad {
+            border: 2px solid #000;
+            width: 100%;
+            height: 400px;
+            touch-action: none;
+            background-color: white;
+        }
+        .hidden {
+            display: none;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        img {
+            margin-top: 20px;
+            border: 1px solid #000;
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Signature Pad</h1>
+        <canvas id="signature-pad" class="signature-pad"
+            onmousedown="startDrawing(event)"
+            onmousemove="draw(event)"
+            onmouseup="stopDrawing()"
+            onmouseleave="stopDrawing()"></canvas>
+        <br>
+        <button id="clear" onclick="clearCanvas()">Clear</button>
+        <button id="save" onclick="saveSignature()">Save</button>
+        <img id="signature-image" class="hidden" alt="Your Signature" />
+    </div>
+
+    <script>
+        const canvas = document.getElementById('signature-pad');
+        const ctx = canvas.getContext('2d');
+        const signatureImage = document.getElementById('signature-image');
+
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        const smoothingBuffer = [];
+        const bufferSize = 5;
+
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        resizeCanvas();
+
+        function getMousePosition(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+        }
+
+        function startDrawing(event) {
+            const { x, y } = getMousePosition(event);
+            isDrawing = true;
+            [lastX, lastY] = [x, y];
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            smoothingBuffer.length = 0; // Clear buffer on start
+        }
+
+        function draw(event) {
+            if (!isDrawing) return;
+            const { x, y } = getMousePosition(event);
+
+            // Add current point to the buffer
+            smoothingBuffer.push({ x, y });
+            if (smoothingBuffer.length > bufferSize) {
+                smoothingBuffer.shift(); // Remove oldest point
+            }
+
+            const avgPoint = calculateAveragePoint(smoothingBuffer);
+            drawSmoothLine(lastX, lastY, avgPoint.x, avgPoint.y);
+            [lastX, lastY] = [avgPoint.x, avgPoint.y];
+        }
+
+        function calculateAveragePoint(points) {
+            const sum = points.reduce((acc, point) => {
+                acc.x += point.x;
+                acc.y += point.y;
+                return acc;
+            }, { x: 0, y: 0 });
+            return {
+                x: sum.x / points.length,
+                y: sum.y / points.length
+            };
+        }
+
+        function drawSmoothLine(x0, y0, x1, y1) {
+            ctx.lineTo(x1, y1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.closePath();
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            signatureImage.classList.add('hidden');
+        }
+
+        function saveSignature() {
+            const dataURL = canvas.toDataURL('image/png');
+            signatureImage.src = dataURL;
+            signatureImage.classList.remove('hidden');
+        }
+
+        // Resize the canvas on window resize
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
